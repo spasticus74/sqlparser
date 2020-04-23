@@ -8,7 +8,7 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/marianogappa/sqlparser/query"
+	"github.com/alfonso-directnic/sqlparser/query"
 	"github.com/stretchr/testify/require"
 )
 
