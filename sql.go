@@ -380,7 +380,25 @@ func (p *parser) peekWithLength() (string, int) {
 	if p.sql[p.i] == '\'' { // Quoted string
 		return p.peekQuotedStringWithLength()
 	}
+	
+	if p.sql[p.i] == '`' { // Quoted Backtick
+		return p.peekBacktickStringWithLength()
+	}
+	
 	return p.peekIdentifierWithLength()
+}
+
+
+func (p *parser) peekBacktickStringWithLength() (string, int) {
+	if len(p.sql) < p.i || p.sql[p.i] != '`' {
+		return "", 0
+	}
+	for i := p.i + 1; i < len(p.sql); i++ {
+		if p.sql[i] == '`' {
+			return p.sql[p.i+1 : i], len(p.sql[p.i+1:i]) + 2 // +2 for the two quotes
+		}
+	}
+	return "", 0
 }
 
 func (p *parser) peekQuotedStringWithLength() (string, int) {
