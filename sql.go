@@ -352,7 +352,10 @@ func (p *parser) doParse() (query.Query, error) {
 		case stepInsertValues:
 			quotedValue, ln := p.peekQuotedStringWithLength()
 			if ln == 0 {
+    			quotedValue, ln = p.peekWithLength()
+    			if(ln==0){
 				return p.query, fmt.Errorf("at INSERT INTO: expected quoted value")
+				}
 			}
 			p.query.Inserts[len(p.query.Inserts)-1] = append(p.query.Inserts[len(p.query.Inserts)-1], quotedValue)
 			p.pop()
