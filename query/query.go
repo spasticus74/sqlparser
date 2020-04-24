@@ -3,6 +3,7 @@ package query
 // Query represents a parsed query
 type Query struct {
 	Type       Type
+	Database   string
 	TableName  string
 	Conditions []Condition
 	Updates    map[string]string

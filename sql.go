@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-
 	"github.com/ralfonso-directnic/sqlparser/query"
 )
 
 // Parse takes a string representing a SQL query and parses it into a query.Query struct. It may fail.
 func Parse(sqls string) (query.Query, error) {
+    
+    sqls = strings.Replace(sqls,"`","",-1)
+    
 	qs, err := ParseMany([]string{sqls})
 	if len(qs) == 0 {
 		return query.Query{}, err
@@ -22,6 +24,7 @@ func Parse(sqls string) (query.Query, error) {
 func ParseMany(sqls []string) ([]query.Query, error) {
 	qs := []query.Query{}
 	for _, sql := range sqls {
+    	sql = strings.Replace(sql,"`","",-1)
 		q, err := parse(sql)
 		if err != nil {
 			return qs, err
@@ -145,6 +148,13 @@ func (p *parser) doParse() (query.Query, error) {
 			if len(tableName) == 0 {
 				return p.query, fmt.Errorf("at SELECT: expected quoted table name")
 			}
+			
+			if strings.Contains(tableName,".") {
+    			parts := strings.Split(tableName,".")
+    			p.query.Database = parts[0]
+    			tableName = parts[1]
+			}
+			
 			p.query.TableName = tableName
 			p.pop()
 			p.step = stepWhere
@@ -153,6 +163,13 @@ func (p *parser) doParse() (query.Query, error) {
 			if len(tableName) == 0 {
 				return p.query, fmt.Errorf("at INSERT INTO: expected quoted table name")
 			}
+			
+			if strings.Contains(tableName,".") {
+    			parts := strings.Split(tableName,".")
+    			p.query.Database = parts[0]
+    			tableName = parts[1]
+			}
+			
 			p.query.TableName = tableName
 			p.pop()
 			p.step = stepInsertFieldsOpeningParens
@@ -161,6 +178,13 @@ func (p *parser) doParse() (query.Query, error) {
 			if len(tableName) == 0 {
 				return p.query, fmt.Errorf("at DELETE FROM: expected quoted table name")
 			}
+			
+            if strings.Contains(tableName,".") {
+    			parts := strings.Split(tableName,".")
+    			p.query.Database = parts[0]
+    			tableName = parts[1]
+			}
+			
 			p.query.TableName = tableName
 			p.pop()
 			p.step = stepWhere
@@ -169,6 +193,14 @@ func (p *parser) doParse() (query.Query, error) {
 			if len(tableName) == 0 {
 				return p.query, fmt.Errorf("at UPDATE: expected quoted table name")
 			}
+			
+			
+           if strings.Contains(tableName,".") {
+    			parts := strings.Split(tableName,".")
+    			p.query.Database = parts[0]
+    			tableName = parts[1]
+			}
+			
 			p.query.TableName = tableName
 			p.pop()
 			p.step = stepUpdateSet
@@ -197,7 +229,10 @@ func (p *parser) doParse() (query.Query, error) {
 		case stepUpdateValue:
 			quotedValue, ln := p.peekQuotedStringWithLength()
 			if ln == 0 {
+    			quotedValue, ln = p.peekWithLength()
+    			if(ln==0){
 				return p.query, fmt.Errorf("at UPDATE: expected quoted value")
+				}
 			}
 			p.query.Updates[p.nextUpdateField] = quotedValue
 			p.nextUpdateField = ""
@@ -255,7 +290,10 @@ func (p *parser) doParse() (query.Query, error) {
 		case stepWhereValue:
 			quotedValue, ln := p.peekQuotedStringWithLength()
 			if ln == 0 {
+                quotedValue, ln = p.peekWithLength()
+    			if(ln==0){
 				return p.query, fmt.Errorf("at WHERE: expected quoted value")
+				}
 			}
 			currentCondition := p.query.Conditions[len(p.query.Conditions)-1]
 			currentCondition.Operand2 = quotedValue
@@ -381,25 +419,13 @@ func (p *parser) peekWithLength() (string, int) {
 		return p.peekQuotedStringWithLength()
 	}
 	
-	if p.sql[p.i] == '`' { // Quoted Backtick
-		return p.peekBacktickStringWithLength()
-	}
+
 	
 	return p.peekIdentifierWithLength()
 }
 
 
-func (p *parser) peekBacktickStringWithLength() (string, int) {
-	if len(p.sql) < p.i || p.sql[p.i] != '`' {
-		return "", 0
-	}
-	for i := p.i + 1; i < len(p.sql); i++ {
-		if p.sql[i] == '`' {
-			return p.sql[p.i+1 : i], len(p.sql[p.i+1:i]) + 2 // +2 for the two quotes
-		}
-	}
-	return "", 0
-}
+
 
 func (p *parser) peekQuotedStringWithLength() (string, int) {
 	if len(p.sql) < p.i || p.sql[p.i] != '\'' {
@@ -415,7 +441,7 @@ func (p *parser) peekQuotedStringWithLength() (string, int) {
 
 func (p *parser) peekIdentifierWithLength() (string, int) {
 	for i := p.i; i < len(p.sql); i++ {
-		if matched, _ := regexp.MatchString(`[a-zA-Z0-9_*]`, string(p.sql[i])); !matched {
+		if matched, _ := regexp.MatchString(`[\.a-zA-Z0-9_*]`, string(p.sql[i])); !matched {
 			return p.sql[p.i:i], len(p.sql[p.i:i])
 		}
 	}
