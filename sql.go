@@ -323,7 +323,7 @@ func (p *parser) doParse() (query.Query, error) {
 			p.step = stepInsertFields
 		case stepInsertFields:
 			identifier := p.peek()
-			if !isIdentifier(identifier) {
+			if !isIdentifier(identifier) && isReservedWord(identifier) {
 				return p.query, fmt.Errorf("at INSERT INTO: expected at least one field to insert")
 			}
 			p.query.Fields = append(p.query.Fields, identifier)
