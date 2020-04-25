@@ -413,10 +413,10 @@ func (p *parser) popWhitespace() {
 
 var reservedWords = []string{
 	"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM",
-	"WHERE", "FROM", "SET",
+	"WHERE", "FROM", "SET","ON DUPLICATE KEY UPDATE"
 }
 
-var reservedWordsOnly = []string{"SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM","WHERE", "FROM", "SET"}
+var reservedWordsOnly = []string{"SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM","WHERE", "FROM", "SET","ON DUPLICATE KEY UPDATE"}
 
 
 
@@ -456,7 +456,7 @@ func (p *parser) peekQuotedStringWithLength() (string, int) {
 
 func (p *parser) peekIdentifierWithLength() (string, int) {
 	for i := p.i; i < len(p.sql); i++ {
-		if matched, _ := regexp.MatchString(`[\.a-zA-Z0-9_*]`, string(p.sql[i])); !matched {
+		if matched, _ := regexp.MatchString(`[\.\-a-zA-Z0-9_*]`, string(p.sql[i])); !matched {
 			return p.sql[p.i:i], len(p.sql[p.i:i])
 		}
 	}
