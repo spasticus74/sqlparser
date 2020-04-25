@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	//"log"
 	"github.com/ralfonso-directnic/sqlparser/query"
 )
 
@@ -12,6 +11,10 @@ import (
 func Parse(sqls string) (query.Query, error) {
     
     sqls = strings.Replace(sqls,"`","",-1)
+    
+    space := regexp.MustCompile(`\s+`)
+    sqls = space.ReplaceAllString(sqls, " ")
+    
     
 	qs, err := ParseMany([]string{sqls})
 	if len(qs) == 0 {
@@ -24,8 +27,13 @@ func Parse(sqls string) (query.Query, error) {
 // It may fail. If it fails, it will stop at the first failure.
 func ParseMany(sqls []string) ([]query.Query, error) {
 	qs := []query.Query{}
+	
+    space := regexp.MustCompile(`\s+`)
+    	
 	for _, sql := range sqls {
     	sql = strings.Replace(sql,"`","",-1)
+    	sql = space.ReplaceAllString(sql, " ")
+
 		q, err := parse(sql)
 		if err != nil {
 			return qs, err
@@ -332,7 +340,7 @@ func (p *parser) doParse() (query.Query, error) {
 		case stepInsertFieldsCommaOrClosingParens:
 			commaOrClosingParens := p.peek()
 			if commaOrClosingParens != "," && commaOrClosingParens != ")" {
-				return p.query, fmt.Errorf("at INSERT INTO: expected comma or closing parens")
+				return p.query, fmt.Errorf("at INSERT INTO: expected comma or closing parens",commaOrClosingParens)
 			}
 			p.pop()
 			if commaOrClosingParens == "," {
@@ -383,11 +391,23 @@ func (p *parser) doParse() (query.Query, error) {
 			p.step = stepInsertValuesCommaBeforeOpeningParens
 		case stepInsertValuesCommaBeforeOpeningParens:
 			commaRWord := p.peek()
-			if strings.ToUpper(commaRWord) != "," {
+			if strings.ToUpper(commaRWord) != "," && isReservedWord(commaRWord) {
 				return p.query, fmt.Errorf("at INSERT INTO: expected comma")
 			}
 			p.pop()
+			
+			
+			/// this catches an onduplicate key query and just finishes, that level of complexitiy is beyond the scope of this project
+			if(isReservedWord(commaRWord)==false){
+    			
+    			
+    			return p.query,nil
+    			
+			}else{
+			
 			p.step = stepInsertValuesOpeningParens
+			
+			}
 		}
 	}
 }
@@ -411,12 +431,9 @@ func (p *parser) popWhitespace() {
 	
 }
 
-var reservedWords = []string{
-	"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM",
-	"WHERE", "FROM", "SET","ON DUPLICATE KEY UPDATE"
-}
+var reservedWords = []string{"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM","WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE"}
 
-var reservedWordsOnly = []string{"SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM","WHERE", "FROM", "SET","ON DUPLICATE KEY UPDATE"}
+var reservedWordsOnly = []string{"SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM","WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE"}
 
 
 

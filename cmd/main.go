@@ -2,6 +2,7 @@ package main
 
 
 import (
+//  "strings"
   "log"
   "github.com/ralfonso-directnic/sqlparser"
 )
@@ -9,8 +10,7 @@ import (
 
 func main(){ 
 
-  str :=""
-  
+  str := ``  
   q,err := sqlparser.Parse(str)
 
   if err != nil {
