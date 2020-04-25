@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	//"log"
 	"github.com/ralfonso-directnic/sqlparser/query"
 )
 
@@ -189,7 +190,9 @@ func (p *parser) doParse() (query.Query, error) {
 			p.pop()
 			p.step = stepWhere
 		case stepUpdateTable:
+		
 			tableName := p.peek()
+			
 			if len(tableName) == 0 {
 				return p.query, fmt.Errorf("at UPDATE: expected quoted table name")
 			}
@@ -213,8 +216,11 @@ func (p *parser) doParse() (query.Query, error) {
 			p.step = stepUpdateField
 		case stepUpdateField:
 			identifier := p.peek()
-			if !isIdentifier(identifier) {
+			
+			if !isIdentifier(identifier) && isReservedWord(identifier) {
+    			//this case handles when a reserved word is used in the query
 				return p.query, fmt.Errorf("at UPDATE: expected at least one field to update")
+				//log.Println("Identifier Found")
 			}
 			p.nextUpdateField = identifier
 			p.pop()
@@ -401,12 +407,18 @@ func (p *parser) pop() string {
 func (p *parser) popWhitespace() {
 	for ; p.i < len(p.sql) && p.sql[p.i] == ' '; p.i++ {
 	}
+	
+	
 }
 
 var reservedWords = []string{
 	"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM",
 	"WHERE", "FROM", "SET",
 }
+
+var reservedWordsOnly = []string{"SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM","WHERE", "FROM", "SET"}
+
+
 
 func (p *parser) peekWithLength() (string, int) {
 	if p.i >= len(p.sql) {
@@ -499,6 +511,17 @@ func (p *parser) logError() {
 
 func isIdentifier(s string) bool {
 	for _, rw := range reservedWords {
+		if strings.ToUpper(s) == rw {
+			return false
+		}
+	}
+	matched, _ := regexp.MatchString("[a-zA-Z_][a-zA-Z_0-9]*", s)
+	return matched
+}
+
+
+func isReservedWord(s string) bool {
+	for _, rw := range reservedWordsOnly {
 		if strings.ToUpper(s) == rw {
 			return false
 		}
