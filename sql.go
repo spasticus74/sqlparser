@@ -93,7 +93,7 @@ func (p *parser) parse() (query.Query, error) {
 	if p.err == nil {
 		p.err = p.validate()
 	}
-	p.logError()
+	//p.logError()
 	return q, p.err
 }
 
