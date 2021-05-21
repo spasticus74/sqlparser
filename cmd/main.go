@@ -10,7 +10,7 @@ import (
 
 func main() {
 
-	str := `select start, end from there where this = that`
+	str := `SELECT start, middle, end FROM there WHERE this = that`
 	q, err := sqlparser.Parse(str)
 
 	if err != nil {
