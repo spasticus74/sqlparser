@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"github.com/ralfonso-directnic/sqlparser/query"
+
+	"github.com/spasticus74/sqlparser/query"
 )
 
 // Parse takes a string representing a SQL query and parses it into a query.Query struct. It may fail.
 func Parse(sqls string) (query.Query, error) {
-    
-    sqls = strings.Replace(sqls,"`","",-1)
-    
-    space := regexp.MustCompile(`\s+`)
-    sqls = space.ReplaceAllString(sqls, " ")
-    
-    
+
+	sqls = strings.Replace(sqls, "`", "", -1)
+
+	space := regexp.MustCompile(`\s+`)
+	sqls = space.ReplaceAllString(sqls, " ")
+
 	qs, err := ParseMany([]string{sqls})
 	if len(qs) == 0 {
 		return query.Query{}, err
@@ -27,12 +27,12 @@ func Parse(sqls string) (query.Query, error) {
 // It may fail. If it fails, it will stop at the first failure.
 func ParseMany(sqls []string) ([]query.Query, error) {
 	qs := []query.Query{}
-	
-    space := regexp.MustCompile(`\s+`)
-    	
+
+	space := regexp.MustCompile(`\s+`)
+
 	for _, sql := range sqls {
-    	sql = strings.Replace(sql,"`","",-1)
-    	sql = space.ReplaceAllString(sql, " ")
+		sql = strings.Replace(sql, "`", "", -1)
+		sql = space.ReplaceAllString(sql, " ")
 
 		q, err := parse(sql)
 		if err != nil {
@@ -157,13 +157,13 @@ func (p *parser) doParse() (query.Query, error) {
 			if len(tableName) == 0 {
 				return p.query, fmt.Errorf("at SELECT: expected quoted table name")
 			}
-			
-			if strings.Contains(tableName,".") {
-    			parts := strings.Split(tableName,".")
-    			p.query.Database = parts[0]
-    			tableName = parts[1]
+
+			if strings.Contains(tableName, ".") {
+				parts := strings.Split(tableName, ".")
+				p.query.Database = parts[0]
+				tableName = parts[1]
 			}
-			
+
 			p.query.TableName = tableName
 			p.pop()
 			p.step = stepWhere
@@ -172,13 +172,13 @@ func (p *parser) doParse() (query.Query, error) {
 			if len(tableName) == 0 {
 				return p.query, fmt.Errorf("at INSERT INTO: expected quoted table name")
 			}
-			
-			if strings.Contains(tableName,".") {
-    			parts := strings.Split(tableName,".")
-    			p.query.Database = parts[0]
-    			tableName = parts[1]
+
+			if strings.Contains(tableName, ".") {
+				parts := strings.Split(tableName, ".")
+				p.query.Database = parts[0]
+				tableName = parts[1]
 			}
-			
+
 			p.query.TableName = tableName
 			p.pop()
 			p.step = stepInsertFieldsOpeningParens
@@ -187,31 +187,30 @@ func (p *parser) doParse() (query.Query, error) {
 			if len(tableName) == 0 {
 				return p.query, fmt.Errorf("at DELETE FROM: expected quoted table name")
 			}
-			
-            if strings.Contains(tableName,".") {
-    			parts := strings.Split(tableName,".")
-    			p.query.Database = parts[0]
-    			tableName = parts[1]
+
+			if strings.Contains(tableName, ".") {
+				parts := strings.Split(tableName, ".")
+				p.query.Database = parts[0]
+				tableName = parts[1]
 			}
-			
+
 			p.query.TableName = tableName
 			p.pop()
 			p.step = stepWhere
 		case stepUpdateTable:
-		
+
 			tableName := p.peek()
-			
+
 			if len(tableName) == 0 {
 				return p.query, fmt.Errorf("at UPDATE: expected quoted table name")
 			}
-			
-			
-           if strings.Contains(tableName,".") {
-    			parts := strings.Split(tableName,".")
-    			p.query.Database = parts[0]
-    			tableName = parts[1]
+
+			if strings.Contains(tableName, ".") {
+				parts := strings.Split(tableName, ".")
+				p.query.Database = parts[0]
+				tableName = parts[1]
 			}
-			
+
 			p.query.TableName = tableName
 			p.pop()
 			p.step = stepUpdateSet
@@ -224,9 +223,9 @@ func (p *parser) doParse() (query.Query, error) {
 			p.step = stepUpdateField
 		case stepUpdateField:
 			identifier := p.peek()
-			
+
 			if !isIdentifier(identifier) && isReservedWord(identifier) {
-    			//this case handles when a reserved word is used in the query
+				//this case handles when a reserved word is used in the query
 				return p.query, fmt.Errorf("at UPDATE: expected at least one field to update")
 				//log.Println("Identifier Found")
 			}
@@ -243,9 +242,9 @@ func (p *parser) doParse() (query.Query, error) {
 		case stepUpdateValue:
 			quotedValue, ln := p.peekQuotedStringWithLength()
 			if ln == 0 {
-    			quotedValue, ln = p.peekWithLength()
-    			if(ln==0){
-				return p.query, fmt.Errorf("at UPDATE: expected quoted value")
+				quotedValue, ln = p.peekWithLength()
+				if ln == 0 {
+					return p.query, fmt.Errorf("at UPDATE: expected quoted value")
 				}
 			}
 			p.query.Updates[p.nextUpdateField] = quotedValue
@@ -304,9 +303,9 @@ func (p *parser) doParse() (query.Query, error) {
 		case stepWhereValue:
 			quotedValue, ln := p.peekQuotedStringWithLength()
 			if ln == 0 {
-                quotedValue, ln = p.peekWithLength()
-    			if(ln==0){
-				return p.query, fmt.Errorf("at WHERE: expected quoted value")
+				quotedValue, ln = p.peekWithLength()
+				if ln == 0 {
+					return p.query, fmt.Errorf("at WHERE: expected quoted value")
 				}
 			}
 			currentCondition := p.query.Conditions[len(p.query.Conditions)-1]
@@ -340,7 +339,7 @@ func (p *parser) doParse() (query.Query, error) {
 		case stepInsertFieldsCommaOrClosingParens:
 			commaOrClosingParens := p.peek()
 			if commaOrClosingParens != "," && commaOrClosingParens != ")" {
-				return p.query, fmt.Errorf("at INSERT INTO: expected comma or closing parens",commaOrClosingParens)
+				return p.query, fmt.Errorf("at INSERT INTO: expected comma or closing parens", commaOrClosingParens)
 			}
 			p.pop()
 			if commaOrClosingParens == "," {
@@ -366,9 +365,9 @@ func (p *parser) doParse() (query.Query, error) {
 		case stepInsertValues:
 			quotedValue, ln := p.peekQuotedStringWithLength()
 			if ln == 0 {
-    			quotedValue, ln = p.peekWithLength()
-    			if(ln==0){
-				return p.query, fmt.Errorf("at INSERT INTO: expected quoted value")
+				quotedValue, ln = p.peekWithLength()
+				if ln == 0 {
+					return p.query, fmt.Errorf("at INSERT INTO: expected quoted value")
 				}
 			}
 			p.query.Inserts[len(p.query.Inserts)-1] = append(p.query.Inserts[len(p.query.Inserts)-1], quotedValue)
@@ -395,18 +394,16 @@ func (p *parser) doParse() (query.Query, error) {
 				return p.query, fmt.Errorf("at INSERT INTO: expected comma")
 			}
 			p.pop()
-			
-			
+
 			/// this catches an onduplicate key query and just finishes, that level of complexitiy is beyond the scope of this project
-			if(isReservedWord(commaRWord)==false){
-    			
-    			
-    			return p.query,nil
-    			
-			}else{
-			
-			p.step = stepInsertValuesOpeningParens
-			
+			if isReservedWord(commaRWord) == false {
+
+				return p.query, nil
+
+			} else {
+
+				p.step = stepInsertValuesOpeningParens
+
 			}
 		}
 	}
@@ -427,15 +424,12 @@ func (p *parser) pop() string {
 func (p *parser) popWhitespace() {
 	for ; p.i < len(p.sql) && p.sql[p.i] == ' '; p.i++ {
 	}
-	
-	
+
 }
 
-var reservedWords = []string{"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM","WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE"}
+var reservedWords = []string{"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE"}
 
-var reservedWordsOnly = []string{"SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM","WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE"}
-
-
+var reservedWordsOnly = []string{"SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE"}
 
 func (p *parser) peekWithLength() (string, int) {
 	if p.i >= len(p.sql) {
@@ -450,14 +444,9 @@ func (p *parser) peekWithLength() (string, int) {
 	if p.sql[p.i] == '\'' { // Quoted string
 		return p.peekQuotedStringWithLength()
 	}
-	
 
-	
 	return p.peekIdentifierWithLength()
 }
-
-
-
 
 func (p *parser) peekQuotedStringWithLength() (string, int) {
 	if len(p.sql) < p.i || p.sql[p.i] != '\'' {
@@ -535,7 +524,6 @@ func isIdentifier(s string) bool {
 	matched, _ := regexp.MatchString("[a-zA-Z_][a-zA-Z_0-9]*", s)
 	return matched
 }
-
 
 func isReservedWord(s string) bool {
 	for _, rw := range reservedWordsOnly {
