@@ -76,6 +76,8 @@ const (
 	stepWhereOperator
 	stepWhereValue
 	stepWhereAnd
+	stepOrderField
+	stepOrderDirectionOrComma
 )
 
 type parser struct {
@@ -313,7 +315,15 @@ func (p *parser) doParse() (query.Query, error) {
 			currentCondition.Operand2IsField = false
 			p.query.Conditions[len(p.query.Conditions)-1] = currentCondition
 			p.pop()
-			p.step = stepWhereAnd
+			oWord := p.peek()
+			if strings.ToUpper(oWord) == "ORDER BY" {
+				fmt.Println("Found 'ORDER BY'")
+				p.pop()
+				p.step = stepOrderField
+			} else {
+				fmt.Println("Found 'AND'")
+				p.step = stepWhereAnd
+			}
 		case stepWhereAnd:
 			andRWord := p.peek()
 			if strings.ToUpper(andRWord) != "AND" {
@@ -321,6 +331,29 @@ func (p *parser) doParse() (query.Query, error) {
 			}
 			p.pop()
 			p.step = stepWhereField
+		case stepOrderField:
+			fmt.Println("In stepOrderField")
+			identifier := p.peek()
+			fmt.Println("    found an order identifier: ", identifier)
+			if !isIdentifier(identifier) {
+				return p.query, fmt.Errorf("at ORDER BY: expected field to ORDER")
+			}
+			p.query.OrderFields = append(p.query.OrderFields, identifier)
+			p.query.OrderDir = append(p.query.OrderDir, "ASC")
+			p.pop()
+			p.step = stepOrderDirectionOrComma
+		case stepOrderDirectionOrComma:
+			fmt.Println("In stepOderDirectionOrComma")
+			commaRWord := p.peek()
+			fmt.Println("    found [", commaRWord, "]")
+			if commaRWord == "," {
+				p.pop()
+			} else if commaRWord == "ASC" || commaRWord == "DESC" {
+				p.pop()
+				p.query.OrderDir[len(p.query.OrderDir)-1] = commaRWord
+				continue
+			}
+			p.step = stepOrderField
 		case stepInsertFieldsOpeningParens:
 			openingParens := p.peek()
 			if len(openingParens) != 1 || openingParens != "(" {
@@ -427,9 +460,9 @@ func (p *parser) popWhitespace() {
 
 }
 
-var reservedWords = []string{"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE"}
+var reservedWords = []string{"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC"}
 
-var reservedWordsOnly = []string{"SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE"}
+var reservedWordsOnly = []string{"SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC"}
 
 func (p *parser) peekWithLength() (string, int) {
 	if p.i >= len(p.sql) {

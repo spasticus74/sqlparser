@@ -2,13 +2,15 @@ package query
 
 // Query represents a parsed query
 type Query struct {
-	Type       Type
-	Database   string
-	TableName  string
-	Conditions []Condition
-	Updates    map[string]string
-	Inserts    [][]string
-	Fields     []string // Used for SELECT (i.e. SELECTed field names) and INSERT (INSERTEDed field names)
+	Type        Type
+	Database    string
+	TableName   string
+	Conditions  []Condition
+	Updates     map[string]string
+	Inserts     [][]string
+	Fields      []string // Used for SELECT (i.e. SELECTed field names) and INSERT (INSERTEDed field names)
+	OrderFields []string
+	OrderDir    []string
 }
 
 // Type is the type of SQL query, e.g. SELECT/UPDATE
