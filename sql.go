@@ -323,11 +323,9 @@ func (p *parser) doParse() (query.Query, error) {
 			p.pop()
 			oWord := p.peek()
 			if strings.ToUpper(oWord) == "ORDER BY" {
-				fmt.Println("Found 'ORDER BY'")
 				p.pop()
 				p.step = stepOrderField
 			} else {
-				fmt.Println("Found 'AND'")
 				p.step = stepWhereAnd
 			}
 		case stepWhereAnd:
