@@ -76,6 +76,7 @@ const (
 	stepWhereOperator
 	stepWhereValue
 	stepWhereAnd
+	stepOrder
 	stepOrderField
 	stepOrderDirectionOrComma
 )
@@ -168,7 +169,12 @@ func (p *parser) doParse() (query.Query, error) {
 
 			p.query.TableName = tableName
 			p.pop()
-			p.step = stepWhere
+			look := p.peek()
+			if strings.ToUpper(look) == "WHERE" {
+				p.step = stepWhere
+			} else if strings.ToUpper(look) == "ORDER BY" {
+				p.step = stepOrder
+			}
 		case stepInsertTable:
 			tableName := p.peek()
 			if len(tableName) == 0 {
@@ -331,10 +337,15 @@ func (p *parser) doParse() (query.Query, error) {
 			}
 			p.pop()
 			p.step = stepWhereField
+		case stepOrder:
+			orderRWord := p.peek()
+			if strings.ToUpper(orderRWord) != "ORDER BY" {
+				return p.query, fmt.Errorf("expected ORDER")
+			}
+			p.pop()
+			p.step = stepOrderField
 		case stepOrderField:
-			fmt.Println("In stepOrderField")
 			identifier := p.peek()
-			fmt.Println("    found an order identifier: ", identifier)
 			if !isIdentifier(identifier) {
 				return p.query, fmt.Errorf("at ORDER BY: expected field to ORDER")
 			}
@@ -343,9 +354,7 @@ func (p *parser) doParse() (query.Query, error) {
 			p.pop()
 			p.step = stepOrderDirectionOrComma
 		case stepOrderDirectionOrComma:
-			fmt.Println("In stepOderDirectionOrComma")
 			commaRWord := p.peek()
-			fmt.Println("    found [", commaRWord, "]")
 			if commaRWord == "," {
 				p.pop()
 			} else if commaRWord == "ASC" || commaRWord == "DESC" {
