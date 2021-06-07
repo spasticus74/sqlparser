@@ -11,6 +11,7 @@ type Query struct {
 	Fields      []string // Used for SELECT (i.e. SELECTed field names) and INSERT (INSERTEDed field names)
 	OrderFields []string
 	OrderDir    []string
+	Joins       []Join
 }
 
 // Type is the type of SQL query, e.g. SELECT/UPDATE
@@ -81,4 +82,24 @@ type Condition struct {
 	Operand2 string
 	// Operand2IsField determines if Operand2 is a literal or a field name
 	Operand2IsField bool
+}
+
+type Join struct {
+	Type       string
+	Table      string
+	Conditions []JoinCondition
+}
+
+// Condition is a single boolean condition in a WHERE clause
+type JoinCondition struct {
+	// LHS table name
+	Table1 string
+	// Operand1 is the left hand side operand
+	Operand1 string
+	// Operator is e.g. "=", ">"
+	Operator Operator
+	// RHS table name
+	Table2 string
+	// Operand1 is the right hand side operand
+	Operand2 string
 }

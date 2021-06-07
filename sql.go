@@ -79,6 +79,9 @@ const (
 	stepOrder
 	stepOrderField
 	stepOrderDirectionOrComma
+	stepJoin
+	stepJoinTable
+	stepJoinCondition
 )
 
 type parser struct {
@@ -174,6 +177,8 @@ func (p *parser) doParse() (query.Query, error) {
 				p.step = stepWhere
 			} else if strings.ToUpper(look) == "ORDER BY" {
 				p.step = stepOrder
+			} else if strings.Contains(strings.ToUpper(look), "JOIN") {
+				p.step = stepJoin
 			}
 		case stepInsertTable:
 			tableName := p.peek()
@@ -361,6 +366,68 @@ func (p *parser) doParse() (query.Query, error) {
 				continue
 			}
 			p.step = stepOrderField
+		case stepJoin:
+			joinType := p.peek()
+			p.query.Joins = append(p.query.Joins, query.Join{Type: joinType, Table: "UNKNOWN"})
+			p.pop()
+			p.step = stepJoinTable
+		case stepJoinTable:
+			joinTable := p.peek()
+			currentJoin := p.query.Joins[len(p.query.Joins)-1]
+			currentJoin.Table = joinTable
+			p.query.Joins[len(p.query.Joins)-1] = currentJoin
+			p.pop()
+			if strings.ToUpper(p.peek()) == "ON" {
+				p.step = stepJoinCondition
+			} else {
+				p.step = stepOrder
+			}
+		case stepJoinCondition:
+			p.pop()
+			op1 := p.pop()
+			op1split := strings.Split(op1, ".")
+			if len(op1split) != 2 {
+				return p.query, fmt.Errorf("at ON: expected <tablename>.<fieldname>")
+			}
+			currentCondition := query.JoinCondition{Table1: op1split[0], Operand1: op1split[1]}
+			operator := p.peek()
+			switch operator {
+			case "=":
+				currentCondition.Operator = query.Eq
+			case ">":
+				currentCondition.Operator = query.Gt
+			case ">=":
+				currentCondition.Operator = query.Gte
+			case "<":
+				currentCondition.Operator = query.Lt
+			case "<=":
+				currentCondition.Operator = query.Lte
+			case "!=":
+				currentCondition.Operator = query.Ne
+			default:
+				return p.query, fmt.Errorf("at ON: unknown operator")
+			}
+			p.pop()
+			op2 := p.pop()
+			op2split := strings.Split(op2, ".")
+			if len(op2split) != 2 {
+				return p.query, fmt.Errorf("at ON: expected <tablename>.<fieldname>")
+			}
+			currentCondition.Table2 = op2split[0]
+			currentCondition.Operand2 = op2split[1]
+			currentJoin := p.query.Joins[len(p.query.Joins)-1]
+			currentJoin.Conditions = append(currentJoin.Conditions, currentCondition)
+			p.query.Joins[len(p.query.Joins)-1] = currentJoin
+			nextOp := p.peek()
+			if strings.ToUpper(nextOp) == "WHERE" {
+				p.step = stepWhere
+			} else if strings.ToUpper(nextOp) == "ORDER BY" {
+				p.step = stepOrder
+			} else if strings.ToUpper(nextOp) == "AND" {
+				p.step = stepJoinCondition
+			} else if strings.Contains(strings.ToUpper(nextOp), "JOIN") {
+				p.step = stepJoin
+			}
 		case stepInsertFieldsOpeningParens:
 			openingParens := p.peek()
 			if len(openingParens) != 1 || openingParens != "(" {
@@ -467,9 +534,9 @@ func (p *parser) popWhitespace() {
 
 }
 
-var reservedWords = []string{"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC"}
+var reservedWords = []string{"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "JOIN", "ON"}
 
-var reservedWordsOnly = []string{"SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC"}
+var reservedWordsOnly = []string{"SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "JOIN", "ON"}
 
 func (p *parser) peekWithLength() (string, int) {
 	if p.i >= len(p.sql) {
