@@ -12,6 +12,7 @@ type Query struct {
 	OrderFields []string
 	OrderDir    []string
 	Joins       []Join
+	MaxRows     int
 }
 
 // Type is the type of SQL query, e.g. SELECT/UPDATE

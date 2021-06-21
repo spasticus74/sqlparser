@@ -2,7 +2,9 @@ package sqlparser
 
 import (
 	"fmt"
+	"log"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/spasticus74/sqlparser/query"
@@ -51,6 +53,7 @@ type step int
 
 const (
 	stepType step = iota
+	stepTop
 	stepSelectField
 	stepSelectFrom
 	stepSelectComma
@@ -114,7 +117,12 @@ func (p *parser) doParse() (query.Query, error) {
 			case "SELECT":
 				p.query.Type = query.Select
 				p.pop()
-				p.step = stepSelectField
+				look := p.peek()
+				if strings.ToUpper(look) == "TOP" {
+					p.step = stepTop
+				} else {
+					p.step = stepSelectField
+				}
 			case "INSERT INTO":
 				p.query.Type = query.Insert
 				p.pop()
@@ -131,6 +139,14 @@ func (p *parser) doParse() (query.Query, error) {
 			default:
 				return p.query, fmt.Errorf("invalid query type")
 			}
+		case stepTop:
+			p.pop()
+			m, err := strconv.Atoi(p.pop())
+			if err != nil {
+				log.Fatal("Unable to convert integer in TOP expression")
+			}
+			p.query.MaxRows = m
+			p.step = stepSelectField
 		case stepSelectField:
 			identifier := p.peek()
 			if !isIdentifierOrAsterisk(identifier) {
@@ -534,9 +550,9 @@ func (p *parser) popWhitespace() {
 
 }
 
-var reservedWords = []string{"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "JOIN", "ON"}
+var reservedWords = []string{"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "TOP", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "JOIN", "ON"}
 
-var reservedWordsOnly = []string{"SELECT", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "JOIN", "ON"}
+var reservedWordsOnly = []string{"SELECT", "TOP", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "JOIN", "ON"}
 
 func (p *parser) peekWithLength() (string, int) {
 	if p.i >= len(p.sql) {
