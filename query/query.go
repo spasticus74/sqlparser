@@ -9,6 +9,7 @@ type Query struct {
 	Updates     map[string]string
 	Inserts     [][]string
 	Fields      []string // Used for SELECT (i.e. SELECTed field names) and INSERT (INSERTEDed field names)
+	Aliases     map[string]string
 	OrderFields []string
 	OrderDir    []string
 	Joins       []Join

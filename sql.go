@@ -155,6 +155,19 @@ func (p *parser) doParse() (query.Query, error) {
 			p.query.Fields = append(p.query.Fields, identifier)
 			p.pop()
 			maybeFrom := p.peek()
+			if strings.ToUpper(maybeFrom) == "AS" {
+				p.pop()
+				alias := p.peek()
+				if !isIdentifier(alias) {
+					return p.query, fmt.Errorf("at SELECT: expected field alias for \"" + identifier + " as\" to SELECT")
+				}
+				if p.query.Aliases == nil {
+					p.query.Aliases = make(map[string]string)
+				}
+				p.query.Aliases[identifier] = alias
+				p.pop()
+				maybeFrom = p.peek()
+			}
 			if strings.ToUpper(maybeFrom) == "FROM" {
 				p.step = stepSelectFrom
 				continue
@@ -550,9 +563,9 @@ func (p *parser) popWhitespace() {
 
 }
 
-var reservedWords = []string{"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "TOP", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "JOIN", "ON"}
+var reservedWords = []string{"(", ")", ">=", "<=", "!=", ",", "=", ">", "<", "SELECT", "TOP", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "JOIN", "ON", "AS"}
 
-var reservedWordsOnly = []string{"SELECT", "TOP", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "JOIN", "ON"}
+var reservedWordsOnly = []string{"SELECT", "TOP", "INSERT INTO", "VALUES", "UPDATE", "DELETE FROM", "WHERE", "FROM", "SET", "ON DUPLICATE KEY UPDATE", "ORDER BY", "ASC", "DESC", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "JOIN", "ON", "AS"}
 
 func (p *parser) peekWithLength() (string, int) {
 	if p.i >= len(p.sql) {

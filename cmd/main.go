@@ -10,7 +10,7 @@ import (
 
 func main() {
 
-	str := `SELECT start, middle, end FROM there join what on there.it != what.what and there.who = what.shit left join whoot on whoot.tweet <= what.what where this = that order by start desc, end, middle asc`
+	str := `SELECT start as s, middle as m, end as e FROM there join what on there.it != what.what and there.who = what.shit left join whoot on whoot.tweet <= what.what where this = that order by start desc, end, middle asc`
 	q, err := sqlparser.Parse(str)
 
 	if err != nil {
