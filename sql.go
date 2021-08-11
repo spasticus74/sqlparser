@@ -475,7 +475,7 @@ func (p *parser) doParse() (query.Query, error) {
 		case stepInsertFieldsCommaOrClosingParens:
 			commaOrClosingParens := p.peek()
 			if commaOrClosingParens != "," && commaOrClosingParens != ")" {
-				return p.query, fmt.Errorf("at INSERT INTO: expected comma or closing parens", commaOrClosingParens)
+				return p.query, fmt.Errorf("at INSERT INTO: expected comma or closing parens")
 			}
 			p.pop()
 			if commaOrClosingParens == "," {

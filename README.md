@@ -67,6 +67,21 @@ query.Query {
 }
 ```
 
+### Example: SELECT with alias works
+
+```
+query, err := sqlparser.Parse(`SELECT a as z, b as y, c FROM 'b'`)
+
+query.Query {
+	Type: Select
+	TableName: b
+	Conditions: []
+	Updates: map[]
+	Inserts: []
+	Fields: [a b c]
+}
+```
+
 ### Example: SELECT with WHERE with = works
 
 ```
@@ -383,21 +398,6 @@ query.Query {
 }
 ```
 
-### Example: INSERT with multiple fields and multiple values works
-
-```
-query, err := sqlparser.Parse(`INSERT INTO 'a' (b,c,    d) VALUES ('1','2' ,  '3' ),('4','5' ,'6' )`)
-
-query.Query {
-	Type: Insert
-	TableName: a
-	Conditions: []
-	Updates: map[]
-	Inserts: [[1 2 3] [4 5 6]]
-	Fields: [b c d]
-}
-```
-
 
 
 ### Example: empty query fails
@@ -478,14 +478,6 @@ at WHERE: WHERE clause is mandatory for UPDATE & DELETE
 query, err := sqlparser.Parse(`UPDATE 'a' SET b WHERE`)
 
 at UPDATE: expected '='
-```
-
-### Example: Incomplete UPDATE with table name, SET with a field and = but no value and WHERE fails
-
-```
-query, err := sqlparser.Parse(`UPDATE 'a' SET b = WHERE`)
-
-at UPDATE: expected quoted value
 ```
 
 ### Example: Incomplete UPDATE due to no WHERE clause fails
@@ -590,13 +582,5 @@ at INSERT INTO: need at least one row to insert
 query, err := sqlparser.Parse(`INSERT INTO 'a' (b) VALUES (`)
 
 at INSERT INTO: value count doesn't match field count
-```
-
-### Example: INSERT * fails
-
-```
-query, err := sqlparser.Parse(`INSERT INTO 'a' (*) VALUES ('1')`)
-
-at INSERT INTO: expected at least one field to insert
 ```
 
